@@ -1,18 +1,53 @@
 package com.limayeapps.flikrdemo;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import com.squareup.picasso.Picasso;
+
+import butterknife.ButterKnife;
+import butterknife.InjectView;
 
 
 public class PhotoActivity extends Activity {
 
+    public static Intent createIntent(Context context, PhotoWithUrl photoWithUrl) {
+        Intent intent = new Intent(context, PhotoActivity.class);
+        intent.putExtra("url",photoWithUrl.url);
+        intent.putExtra("title",photoWithUrl.title);
+        return intent;
+    }
+
+    @InjectView(R.id.image) ImageView imageView;
+    @InjectView(R.id.title) TextView title;
+
+    private String getUrl() {
+        return this.getIntent().getStringExtra("url");
+    }
+
+    private String getImageTitle() {
+        return this.getIntent().getStringExtra("title");
+    }
+
+    private String getImageOwner() {
+        return this.getIntent().getStringExtra("owner");
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        this.setTitle("Photo Details");
         setContentView(R.layout.activity_photo);
+        ButterKnife.inject(this);
+        title.setText(getImageTitle());
+        Picasso.with(this).load(getUrl()).into(imageView);
     }
 
     @Override

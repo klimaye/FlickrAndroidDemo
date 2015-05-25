@@ -62,7 +62,8 @@ public class GridViewActivity extends Activity {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 //Show new activity
-                Intent intent = new Intent(GridViewActivity.this, PhotoActivity.class);
+                PhotoWithUrl photoWithUrl = photosWithUrls.get(i);
+                Intent intent = PhotoActivity.createIntent(GridViewActivity.this, photoWithUrl);
                 startActivity(intent);
             }
         });
