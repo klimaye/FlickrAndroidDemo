@@ -4,13 +4,12 @@
     android:padding="8dp"
     android:orientation="vertical"
     tools:context="com.limayeapps.flikrdemo.GridViewActivity">
-
     <GridView
         android:id="@+id/gridView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:columnWidth="224dp"
-        android:numColumns="auto_fit"
+        android:columnWidth="200dp"
+        android:numColumns="3"
         android:verticalSpacing="8dp"
         android:gravity="center">
     </GridView>
