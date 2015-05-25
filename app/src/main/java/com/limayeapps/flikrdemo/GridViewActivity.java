@@ -3,12 +3,8 @@ package com.limayeapps.flikrdemo;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Display;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,8 +13,6 @@ import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
-import android.widget.ListAdapter;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.limayeapps.flikrdemo.flikrapi.PhotoInfo;
@@ -26,6 +20,7 @@ import com.limayeapps.flikrdemo.flikrapi.PhotoInfoResponse;
 import com.limayeapps.flikrdemo.flikrapi.PhotoResponse;
 import com.squareup.picasso.Picasso;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -40,9 +35,11 @@ import rx.functions.Action1;
 
 public class GridViewActivity extends Activity {
 
+    private static final String PHOTOS_KEY = "photos";
     @InjectView(R.id.gridView) GridView gridView;
     private FlikrService flikrService;
     private Subscription metaInfoSubscription;
+    private ArrayList<PhotoWithUrl> photosWithUrls = new ArrayList<>();
 
     private void setGridViewColumns() {
         Display display = ((WindowManager) this.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
@@ -69,7 +66,17 @@ public class GridViewActivity extends Activity {
                 startActivity(intent);
             }
         });
+        if (savedInstanceState != null) {
+            photosWithUrls = (ArrayList<PhotoWithUrl>)savedInstanceState.getSerializable(PHOTOS_KEY);
+        }
+        setupFlickrService();
         initializePhotoStream();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putSerializable(PHOTOS_KEY, photosWithUrls);
     }
 
     @Override
@@ -81,14 +88,12 @@ public class GridViewActivity extends Activity {
     }
 
     private void initializePhotoStream() {
-        RestAdapter restAdapter = new RestAdapter.Builder()
-                .setEndpoint(FlikrSettings.BASE_URL)
-                .build();
-
-        flikrService = restAdapter.create(FlikrService.class);
+        if (photosWithUrls.size() > 0) {
+            this.gridView.setAdapter(new ImageAdapter(this, flikrService));
+            return;
+        }
 
         Map<String, String> queryMap = FlikrSettings.getInterestingPhotosQueryMap();
-
         metaInfoSubscription = flikrService.getInterestingPhotos(queryMap)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1<PhotoInfoResponse>() {
@@ -108,24 +113,33 @@ public class GridViewActivity extends Activity {
                 });
     }
 
+    private void setupFlickrService() {
+        RestAdapter restAdapter = new RestAdapter.Builder()
+                .setEndpoint(FlikrSettings.BASE_URL)
+                .build();
+
+        flikrService = restAdapter.create(FlikrService.class);
+    }
+
     private void createAndSetAdapter(List<PhotoInfo> photo) {
-        this.gridView.setAdapter(new ImageAdapter(this,photo,flikrService));
+        for (PhotoInfo photoInfo : photo) {
+            photosWithUrls.add(PhotoWithUrl.from(photoInfo));
+        }
+        this.gridView.setAdapter(new ImageAdapter(this, flikrService));
     }
 
     private class ImageAdapter extends BaseAdapter {
         private Context context;
-        private List<PhotoInfo> metaInfo;
         private FlikrService service;
 
-        public ImageAdapter(Context context, List<PhotoInfo> metaInfo, FlikrService service) {
+        public ImageAdapter(Context context, FlikrService service) {
             this.context = context;
-            this.metaInfo = metaInfo;
             this.service = service;
         }
 
         @Override
         public int getCount() {
-            return metaInfo.size();
+            return photosWithUrls.size();
         }
 
         @Override
@@ -150,15 +164,21 @@ public class GridViewActivity extends Activity {
             else {
                 imageView = (ImageView)view;
             }
-            PhotoInfo info = metaInfo.get(i);
-            service.getPhoto(FlikrSettings.getPhotoWithId(info.id))
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(new Action1<PhotoResponse>() {
-                        @Override
-                        public void call(PhotoResponse photoResponse) {
-                            Picasso.with(context).load(photoResponse.getUrl()).into(imageView);
-                        }
-                    });
+            final PhotoWithUrl info = photosWithUrls.get(i);
+            if (info.url == null) {
+                service.getPhoto(FlikrSettings.getPhotoWithId(info.id))
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(new Action1<PhotoResponse>() {
+                            @Override
+                            public void call(PhotoResponse photoResponse) {
+                                info.url = photoResponse.getUrl();
+                                Picasso.with(context).load(info.url).into(imageView);
+                            }
+                        });
+            }
+            else {
+                Picasso.with(context).load(info.url).into(imageView);
+            }
             return imageView;
         }
     }
