@@ -26,13 +26,13 @@
             android:layout_weight="1"
             />
     </LinearLayout>
-    <GridView
+    <org.askerov.dynamicgrid.DynamicGridView
         android:id="@+id/gridView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:numColumns="2"
+        android:numColumns="3"
         android:padding="8dp"
         android:gravity="center">
-    </GridView>
+    </org.askerov.dynamicgrid.DynamicGridView>
 
 </LinearLayout>

@@ -4,7 +4,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
 import android.view.Display;
+import android.view.DragEvent;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
@@ -15,6 +17,9 @@ import android.widget.Toast;
 
 import com.limayeapps.flikrdemo.flikrapi.PhotoInfo;
 import com.limayeapps.flikrdemo.flikrapi.PhotoInfoResponse;
+
+import org.askerov.dynamicgrid.DynamicGridUtils;
+import org.askerov.dynamicgrid.DynamicGridView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +43,7 @@ public class GridViewActivity extends ActionBarActivity {
     private static final String PHOTOS_KEY = "photos";
     private static final String SEARCH_TERM_KEY = "search_term";
 
-    @InjectView(R.id.gridView) GridView gridView;
+    @InjectView(R.id.gridView) DynamicGridView gridView;
     @InjectView(R.id.search_text) EditText editText;
 
     private FlikrService flikrService;
@@ -46,15 +51,17 @@ public class GridViewActivity extends ActionBarActivity {
     private ArrayList<PhotoWithUrl> photosWithUrls = new ArrayList<>();
 
     private String searchTerm = "";
-
+    private int currentcolumnCount = 3;
     private void setGridViewColumns() {
         Display display = ((WindowManager) this.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
         int rotation = display.getRotation();
         if (rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270) {
             gridView.setNumColumns(4);
+            currentcolumnCount = 4;
         }
         else {
             gridView.setNumColumns(3);
+            currentcolumnCount = 3;
         }
     }
 
@@ -78,6 +85,41 @@ public class GridViewActivity extends ActionBarActivity {
                 startActivity(intent);
             }
         });
+        gridView.setOnDropListener(new DynamicGridView.OnDropListener() {
+            @Override
+            public void onActionDrop() {
+                gridView.stopEditMode();
+            }
+        });
+        gridView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
+                gridView.startEditMode();
+                return true;
+            }
+        });
+        gridView.setOnDragListener(new DynamicGridView.OnDragListener() {
+            @Override
+            public void onDragStarted(int i) {
+
+            }
+
+            @Override
+            public void onDragPositionsChanged(int from, int to) {
+                Log.i("onDragPositionsChanged", String.format("changing from %d to %d", from, to));
+                DynamicGridUtils.swap(photosWithUrls, from, to);
+            }
+        });
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (gridView.isEditMode()) {
+            gridView.stopEditMode();
+        }
+        else {
+            super.onBackPressed();
+        }
     }
 
     private void setupFlickrService() {
@@ -125,7 +167,7 @@ public class GridViewActivity extends ActionBarActivity {
 
     private void initializePhotoStream() {
         if (photosWithUrls.size() > 0) {
-            this.gridView.setAdapter(new ImageAdapter(this, flikrService, photosWithUrls));
+            this.gridView.setAdapter(new ImageAdapter(this, flikrService, photosWithUrls, currentcolumnCount));
         }
         else {
             getMetaInfoFor(getIntestingPhotosObservable());
@@ -137,7 +179,7 @@ public class GridViewActivity extends ActionBarActivity {
         for (PhotoInfo photoInfo : photo) {
             photosWithUrls.add(PhotoWithUrl.from(photoInfo));
         }
-        this.gridView.setAdapter(new ImageAdapter(this, flikrService, photosWithUrls));
+        this.gridView.setAdapter(new ImageAdapter(this, flikrService, photosWithUrls, currentcolumnCount));
     }
 
     private void getMetaInfoFor(Observable<PhotoInfoResponse> observable) {
@@ -157,6 +199,7 @@ public class GridViewActivity extends ActionBarActivity {
                 }, new Action0() {
                     @Override
                     public void call() {
+                        Log.i("rxjava","metaInfo onComplete");
                     }
                 });
     }
