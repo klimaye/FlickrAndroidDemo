@@ -6,17 +6,15 @@ import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Display;
-import android.view.DragEvent;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.EditText;
-import android.widget.GridView;
 import android.widget.Toast;
 
-import com.limayeapps.flikrdemo.flikrapi.PhotoInfo;
-import com.limayeapps.flikrdemo.flikrapi.PhotoInfoResponse;
+import com.limayeapps.flikrdemo.flickrapi.PhotoInfo;
+import com.limayeapps.flikrdemo.flickrapi.PhotoInfoResponse;
 
 import org.askerov.dynamicgrid.DynamicGridUtils;
 import org.askerov.dynamicgrid.DynamicGridView;
@@ -46,7 +44,7 @@ public class GridViewActivity extends ActionBarActivity {
     @InjectView(R.id.gridView) DynamicGridView gridView;
     @InjectView(R.id.search_text) EditText editText;
 
-    private FlikrService flikrService;
+    private FlickrService flickrService;
     private Subscription metaInfoSubscription;
     private ArrayList<PhotoWithUrl> photosWithUrls = new ArrayList<>();
 
@@ -124,10 +122,10 @@ public class GridViewActivity extends ActionBarActivity {
 
     private void setupFlickrService() {
         RestAdapter restAdapter = new RestAdapter.Builder()
-                .setEndpoint(FlikrSettings.BASE_URL)
+                .setEndpoint(FlickrSettings.BASE_URL)
                 .build();
 
-        flikrService = restAdapter.create(FlikrService.class);
+        flickrService = restAdapter.create(FlickrService.class);
     }
 
     @Override
@@ -167,7 +165,7 @@ public class GridViewActivity extends ActionBarActivity {
 
     private void initializePhotoStream() {
         if (photosWithUrls.size() > 0) {
-            this.gridView.setAdapter(new ImageAdapter(this, flikrService, photosWithUrls, currentcolumnCount));
+            this.gridView.setAdapter(new ImageAdapter(this, flickrService, photosWithUrls, currentcolumnCount));
         }
         else {
             getMetaInfoFor(getIntestingPhotosObservable());
@@ -179,7 +177,7 @@ public class GridViewActivity extends ActionBarActivity {
         for (PhotoInfo photoInfo : photo) {
             photosWithUrls.add(PhotoWithUrl.from(photoInfo));
         }
-        this.gridView.setAdapter(new ImageAdapter(this, flikrService, photosWithUrls, currentcolumnCount));
+        this.gridView.setAdapter(new ImageAdapter(this, flickrService, photosWithUrls, currentcolumnCount));
     }
 
     private void getMetaInfoFor(Observable<PhotoInfoResponse> observable) {
@@ -205,12 +203,12 @@ public class GridViewActivity extends ActionBarActivity {
     }
 
     private Observable<PhotoInfoResponse> getIntestingPhotosObservable() {
-        Map<String, String> queryMap = FlikrSettings.getInterestingPhotosQueryMap();
-        return flikrService.getInterestingPhotos(queryMap);
+        Map<String, String> queryMap = FlickrSettings.getInterestingPhotosQueryMap();
+        return flickrService.getInterestingPhotos(queryMap);
     }
 
     private Observable<PhotoInfoResponse> getSearchTermPhotosObservable() {
-        Map<String, String> queryMap = FlikrSettings.getPhotosForSearchTerm(this.searchTerm);
-        return flikrService.getSearchTermPhotos(queryMap);
+        Map<String, String> queryMap = FlickrSettings.getPhotosForSearchTerm(this.searchTerm);
+        return flickrService.getSearchTermPhotos(queryMap);
     }
 }

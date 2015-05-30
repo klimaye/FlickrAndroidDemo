@@ -1,4 +1,4 @@
-package com.limayeapps.flikrdemo.flikrapi;
+package com.limayeapps.flikrdemo.flickrapi;
 
 /**
  * Created by kshitijlimaye on 5/23/15.

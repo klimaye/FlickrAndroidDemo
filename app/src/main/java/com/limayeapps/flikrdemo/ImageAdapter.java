@@ -4,16 +4,14 @@ import android.content.Context;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.BaseAdapter;
 import android.widget.ImageView;
 
-import com.limayeapps.flikrdemo.flikrapi.PhotoResponse;
+import com.limayeapps.flikrdemo.flickrapi.PhotoResponse;
 import com.squareup.picasso.Picasso;
 
 import org.askerov.dynamicgrid.BaseDynamicGridAdapter;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action0;
@@ -24,10 +22,10 @@ import rx.functions.Action1;
  */
 public class ImageAdapter extends BaseDynamicGridAdapter {
     private Context context;
-    private FlikrService service;
+    private FlickrService service;
     private ArrayList<PhotoWithUrl> photosWithUrls;
 
-    public ImageAdapter(Context context, FlikrService service, ArrayList<PhotoWithUrl> photosWithUrls, int columnCount) {
+    public ImageAdapter(Context context, FlickrService service, ArrayList<PhotoWithUrl> photosWithUrls, int columnCount) {
         super(context, photosWithUrls, columnCount);
         this.context = context;
         this.service = service;
@@ -57,9 +55,9 @@ public class ImageAdapter extends BaseDynamicGridAdapter {
         private PhotoViewHolder(ImageView view) {
             imageView = view;
         }
-        void build(final PhotoWithUrl info, FlikrService service) {
+        void build(final PhotoWithUrl info, FlickrService service) {
             if (info.url == null) {
-                service.getPhoto(FlikrSettings.getPhotoWithId(info.id))
+                service.getPhoto(FlickrSettings.getPhotoWithId(info.id))
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribe(new Action1<PhotoResponse>() {
                             @Override

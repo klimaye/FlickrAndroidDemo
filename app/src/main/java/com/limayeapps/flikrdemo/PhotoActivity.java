@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ImageView;
@@ -47,7 +48,9 @@ public class PhotoActivity extends ActionBarActivity {
         setContentView(R.layout.activity_photo);
         ButterKnife.inject(this);
         title.setText(getImageTitle());
-        Picasso.with(this).load(getUrl()).into(imageView);
+        Picasso.with(this)
+                .load(getUrl())
+                .into(imageView);
     }
 
     @Override

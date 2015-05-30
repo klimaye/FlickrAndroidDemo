@@ -1,4 +1,4 @@
-package com.limayeapps.flikrdemo.flikrapi;
+package com.limayeapps.flikrdemo.flickrapi;
 
 import java.util.List;
 

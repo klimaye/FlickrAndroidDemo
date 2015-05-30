@@ -2,7 +2,6 @@ package com.limayeapps.flikrdemo;
 
 import android.app.Activity;
 import android.content.Context;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -13,9 +12,9 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.limayeapps.flikrdemo.flikrapi.PhotoInfo;
-import com.limayeapps.flikrdemo.flikrapi.PhotoInfoResponse;
-import com.limayeapps.flikrdemo.flikrapi.PhotoResponse;
+import com.limayeapps.flikrdemo.flickrapi.PhotoInfo;
+import com.limayeapps.flikrdemo.flickrapi.PhotoInfoResponse;
+import com.limayeapps.flikrdemo.flickrapi.PhotoResponse;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
@@ -39,7 +38,7 @@ public class MainActivity extends Activity {
     RecyclerView listView;
 
     private Subscription metaInfoSubscription;
-    private FlikrService flikrService;
+    private FlickrService flickrService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,14 +51,14 @@ public class MainActivity extends Activity {
 
     private void initializePhotoStream() {
         RestAdapter restAdapter = new RestAdapter.Builder()
-                .setEndpoint(FlikrSettings.BASE_URL)
+                .setEndpoint(FlickrSettings.BASE_URL)
                 .build();
 
-        flikrService = restAdapter.create(FlikrService.class);
+        flickrService = restAdapter.create(FlickrService.class);
 
-        Map<String, String> queryMap = FlikrSettings.getInterestingPhotosQueryMap();
+        Map<String, String> queryMap = FlickrSettings.getInterestingPhotosQueryMap();
 
-        metaInfoSubscription = flikrService.getInterestingPhotos(queryMap)
+        metaInfoSubscription = flickrService.getInterestingPhotos(queryMap)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1<PhotoInfoResponse>() {
                     @Override
@@ -79,7 +78,7 @@ public class MainActivity extends Activity {
     }
 
     private void createAdapter(List<PhotoInfo> photoInfos) {
-        adapter = new FlikrAdapter(this, photoInfos, flikrService);
+        adapter = new FlikrAdapter(this, photoInfos, flickrService);
         listView.setAdapter(adapter);
     }
 
@@ -101,12 +100,12 @@ public class MainActivity extends Activity {
 
         private List<PhotoInfo> photoList;
         private Context context;
-        private FlikrService flikrService;
+        private FlickrService flickrService;
 
-        public FlikrAdapter(Context context, List<PhotoInfo> list, FlikrService flikrService) {
+        public FlikrAdapter(Context context, List<PhotoInfo> list, FlickrService flickrService) {
             photoList = list;
             this.context = context;
-            this.flikrService = flikrService;
+            this.flickrService = flickrService;
         }
 
         @Override
@@ -118,7 +117,7 @@ public class MainActivity extends Activity {
         @Override
         public void onBindViewHolder(final PhotoVH holder, int position) {
             PhotoInfo item = photoList.get(position);
-            flikrService.getPhoto(FlikrSettings.getPhotoWithId(item.id))
+            flickrService.getPhoto(FlickrSettings.getPhotoWithId(item.id))
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(new Action1<PhotoResponse>() {
                         @Override

@@ -1,6 +1,5 @@
 package com.limayeapps.flikrdemo;
-
-import com.limayeapps.flikrdemo.flikrapi.PhotoInfo;
+import com.limayeapps.flikrdemo.flickrapi.PhotoInfo;
 
 import java.io.Serializable;
 
