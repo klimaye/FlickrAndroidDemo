@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
+import android.support.v7.widget.Toolbar;
 import android.view.Display;
 import android.view.Surface;
 import android.view.View;
@@ -33,10 +35,12 @@ import rx.functions.Action0;
 import rx.functions.Action1;
 
 
-public class GridViewActivity extends Activity {
+public class GridViewActivity extends ActionBarActivity {
 
     private static final String PHOTOS_KEY = "photos";
     @InjectView(R.id.gridView) GridView gridView;
+    @InjectView(R.id.toolbar_actionbar) Toolbar toolbar;
+
     private FlikrService flikrService;
     private Subscription metaInfoSubscription;
     private ArrayList<PhotoWithUrl> photosWithUrls = new ArrayList<>();
@@ -155,15 +159,13 @@ public class GridViewActivity extends Activity {
 
         @Override
         public View getView(int i, View view, ViewGroup viewGroup) {
-            final ImageView imageView;
+            final SquaredImageView imageView;
             if (view == null) {
-                imageView = new ImageView(context);
-                imageView.setLayoutParams(new GridView.LayoutParams(200, 200));
+                imageView = new SquaredImageView(context);
                 imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                imageView.setPadding(8,8,8,8);
             }
             else {
-                imageView = (ImageView)view;
+                imageView = (SquaredImageView)view;
             }
             final PhotoWithUrl info = photosWithUrls.get(i);
             if (info.url == null) {
@@ -173,7 +175,12 @@ public class GridViewActivity extends Activity {
                             @Override
                             public void call(PhotoResponse photoResponse) {
                                 info.url = photoResponse.getUrl();
-                                Picasso.with(context).load(info.url).into(imageView);
+                                Picasso
+                                        .with(context)
+                                        .load(info.url)
+                                        .placeholder(R.drawable.placeholder)
+                                        .fit()
+                                        .into(imageView);
                             }
                         });
             }

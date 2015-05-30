@@ -1,16 +1,18 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="8dp"
     android:orientation="vertical"
     tools:context="com.limayeapps.flikrdemo.GridViewActivity">
+
+    <include layout="@layout/toolbar_actionbar"
+        android:id="@+id/toolbar_actionbar" />
+
     <GridView
         android:id="@+id/gridView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:columnWidth="200dp"
-        android:numColumns="3"
-        android:verticalSpacing="8dp"
+        android:numColumns="2"
+        android:padding="8dp"
         android:gravity="center">
     </GridView>
 
