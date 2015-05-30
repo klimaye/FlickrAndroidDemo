@@ -16,7 +16,7 @@ import butterknife.ButterKnife;
 import butterknife.InjectView;
 
 
-public class PhotoActivity extends Activity {
+public class PhotoActivity extends ActionBarActivity {
 
     public static Intent createIntent(Context context, PhotoWithUrl photoWithUrl) {
         Intent intent = new Intent(context, PhotoActivity.class);
