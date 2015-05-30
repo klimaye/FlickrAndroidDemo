@@ -32,4 +32,18 @@ public class FlikrSettings {
         return queryMap;
     }
 
+    public static Map<String, String> getPhotosForSearchTerm(String searchTerm) {
+        Map<String, String> queryMap = new HashMap<String, String>();
+        queryMap.put("method","flickr.photos.search");
+        queryMap.put("api_key",FlikrSettings.API_KEY);
+        queryMap.put("tags",searchTerm);
+        queryMap.put("min_upload_date","01-01-2015");
+        queryMap.put("accuracy","3");
+        queryMap.put("per_page","500");
+        queryMap.put("page",String.valueOf(1));
+        queryMap.put("format","json");
+        queryMap.put("nojsoncallback","1");
+        return queryMap;
+    }
+
 }

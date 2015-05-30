@@ -1,26 +1,20 @@
 package com.limayeapps.flikrdemo;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
-import android.support.v7.widget.Toolbar;
 import android.view.Display;
 import android.view.Surface;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.AdapterView;
-import android.widget.BaseAdapter;
+import android.widget.EditText;
 import android.widget.GridView;
-import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.limayeapps.flikrdemo.flikrapi.PhotoInfo;
 import com.limayeapps.flikrdemo.flikrapi.PhotoInfoResponse;
-import com.limayeapps.flikrdemo.flikrapi.PhotoResponse;
-import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,9 +22,13 @@ import java.util.Map;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
+import butterknife.OnClick;
 import retrofit.RestAdapter;
+import rx.Observable;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
+import rx.android.widget.OnTextChangeEvent;
+import rx.android.widget.WidgetObservable;
 import rx.functions.Action0;
 import rx.functions.Action1;
 
@@ -38,12 +36,16 @@ import rx.functions.Action1;
 public class GridViewActivity extends ActionBarActivity {
 
     private static final String PHOTOS_KEY = "photos";
+    private static final String SEARCH_TERM_KEY = "search_term";
+
     @InjectView(R.id.gridView) GridView gridView;
-    @InjectView(R.id.toolbar_actionbar) Toolbar toolbar;
+    @InjectView(R.id.search_text) EditText editText;
 
     private FlikrService flikrService;
     private Subscription metaInfoSubscription;
     private ArrayList<PhotoWithUrl> photosWithUrls = new ArrayList<>();
+
+    private String searchTerm = "";
 
     private void setGridViewColumns() {
         Display display = ((WindowManager) this.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
@@ -56,11 +58,16 @@ public class GridViewActivity extends ActionBarActivity {
         }
     }
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_grid_view);
-        ButterKnife.inject(this);
+    @OnClick(R.id.search_button)
+    public void onClick(View view) {
+        if (searchTerm.isEmpty() || searchTerm.trim().length() == 0) {
+            Toast.makeText(GridViewActivity.this, R.string.enter_search_term_toast,Toast.LENGTH_SHORT)
+                    .show();
+        }
+        getMetaInfoFor(getSearchTermPhotosObservable());
+    }
+
+    private void setupGridView() {
         setGridViewColumns();
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -71,16 +78,40 @@ public class GridViewActivity extends ActionBarActivity {
                 startActivity(intent);
             }
         });
+    }
+
+    private void setupFlickrService() {
+        RestAdapter restAdapter = new RestAdapter.Builder()
+                .setEndpoint(FlikrSettings.BASE_URL)
+                .build();
+
+        flikrService = restAdapter.create(FlikrService.class);
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_grid_view);
+        ButterKnife.inject(this);
+        setupGridView();
+        setupFlickrService();
+        WidgetObservable.text(editText).subscribe(new Action1<OnTextChangeEvent>() {
+            @Override
+            public void call(OnTextChangeEvent event) {
+                searchTerm = event.text().toString();
+            }
+        });
         if (savedInstanceState != null) {
+            searchTerm = savedInstanceState.getString(SEARCH_TERM_KEY);
             photosWithUrls = (ArrayList<PhotoWithUrl>)savedInstanceState.getSerializable(PHOTOS_KEY);
         }
-        setupFlickrService();
         initializePhotoStream();
     }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
+        outState.putString(SEARCH_TERM_KEY, searchTerm);
         outState.putSerializable(PHOTOS_KEY, photosWithUrls);
     }
 
@@ -94,12 +125,24 @@ public class GridViewActivity extends ActionBarActivity {
 
     private void initializePhotoStream() {
         if (photosWithUrls.size() > 0) {
-            this.gridView.setAdapter(new ImageAdapter(this, flikrService));
-            return;
+            this.gridView.setAdapter(new ImageAdapter(this, flikrService, photosWithUrls));
         }
+        else {
+            getMetaInfoFor(getIntestingPhotosObservable());
+        }
+    }
 
-        Map<String, String> queryMap = FlikrSettings.getInterestingPhotosQueryMap();
-        metaInfoSubscription = flikrService.getInterestingPhotos(queryMap)
+    private void createAndSetAdapter(List<PhotoInfo> photo) {
+        photosWithUrls.clear();
+        for (PhotoInfo photoInfo : photo) {
+            photosWithUrls.add(PhotoWithUrl.from(photoInfo));
+        }
+        this.gridView.setAdapter(new ImageAdapter(this, flikrService, photosWithUrls));
+    }
+
+    private void getMetaInfoFor(Observable<PhotoInfoResponse> observable) {
+        metaInfoSubscription =
+                observable
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1<PhotoInfoResponse>() {
                     @Override
@@ -118,76 +161,13 @@ public class GridViewActivity extends ActionBarActivity {
                 });
     }
 
-    private void setupFlickrService() {
-        RestAdapter restAdapter = new RestAdapter.Builder()
-                .setEndpoint(FlikrSettings.BASE_URL)
-                .build();
-
-        flikrService = restAdapter.create(FlikrService.class);
+    private Observable<PhotoInfoResponse> getIntestingPhotosObservable() {
+        Map<String, String> queryMap = FlikrSettings.getInterestingPhotosQueryMap();
+        return flikrService.getInterestingPhotos(queryMap);
     }
 
-    private void createAndSetAdapter(List<PhotoInfo> photo) {
-        for (PhotoInfo photoInfo : photo) {
-            photosWithUrls.add(PhotoWithUrl.from(photoInfo));
-        }
-        this.gridView.setAdapter(new ImageAdapter(this, flikrService));
-    }
-
-    private class ImageAdapter extends BaseAdapter {
-        private Context context;
-        private FlikrService service;
-
-        public ImageAdapter(Context context, FlikrService service) {
-            this.context = context;
-            this.service = service;
-        }
-
-        @Override
-        public int getCount() {
-            return photosWithUrls.size();
-        }
-
-        @Override
-        public Object getItem(int i) {
-            return null;
-        }
-
-        @Override
-        public long getItemId(int i) {
-            return 0;
-        }
-
-        @Override
-        public View getView(int i, View view, ViewGroup viewGroup) {
-            final SquaredImageView imageView;
-            if (view == null) {
-                imageView = new SquaredImageView(context);
-                imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            }
-            else {
-                imageView = (SquaredImageView)view;
-            }
-            final PhotoWithUrl info = photosWithUrls.get(i);
-            if (info.url == null) {
-                service.getPhoto(FlikrSettings.getPhotoWithId(info.id))
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribe(new Action1<PhotoResponse>() {
-                            @Override
-                            public void call(PhotoResponse photoResponse) {
-                                info.url = photoResponse.getUrl();
-                                Picasso
-                                        .with(context)
-                                        .load(info.url)
-                                        .placeholder(R.drawable.placeholder)
-                                        .fit()
-                                        .into(imageView);
-                            }
-                        });
-            }
-            else {
-                Picasso.with(context).load(info.url).into(imageView);
-            }
-            return imageView;
-        }
+    private Observable<PhotoInfoResponse> getSearchTermPhotosObservable() {
+        Map<String, String> queryMap = FlikrSettings.getPhotosForSearchTerm(this.searchTerm);
+        return flikrService.getSearchTermPhotos(queryMap);
     }
 }

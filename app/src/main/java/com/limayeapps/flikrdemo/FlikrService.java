@@ -20,4 +20,7 @@ public interface FlikrService {
     //ttps://api.flickr.com/services/rest/?method=flickr.photos.getInfo&api_key=1eed361f5df5f48188a9379fbb6a6f2a&photo_id=17776584830&format=json&nojsoncallback=1&api_sig=92b16153acdde6e5f85cb6800c1cc2ba
     @GET(FlikrSettings.REST_ENDPOINT)
     public Observable<PhotoResponse> getPhoto(@QueryMap Map<String, String> options);
+
+    @GET(FlikrSettings.REST_ENDPOINT)
+    public Observable<PhotoInfoResponse> getSearchTermPhotos(@QueryMap Map<String, String> options);
 }
