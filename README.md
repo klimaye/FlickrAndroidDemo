@@ -18,5 +18,11 @@ To run the project
  - Tap on the picture to see in larger size
  - one can change orientations
 
+## Libraries Used
+ - [Picasso] (https://github.com/square/picasso)
+ - [Dynamic Grid] (https://github.com/askerov/DynamicGrid)
+ - [Butter Knife] (https://github.com/JakeWharton/butterknife)
+ - [Rx Android] (https://github.com/ReactiveX/RxAndroid)
+
 ## Screenshots
 Screenshots can be found [here](https://www.dropbox.com/sh/bjrg267jkdc6idp/AABZ7gk-OW9RsmxPjBNNF2VSa?dl=0)
