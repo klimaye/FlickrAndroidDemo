@@ -9,6 +9,7 @@ import android.view.Display;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -34,12 +35,14 @@ import rx.android.widget.OnTextChangeEvent;
 import rx.android.widget.WidgetObservable;
 import rx.functions.Action0;
 import rx.functions.Action1;
+import rx.schedulers.Schedulers;
 
 
 public class GridViewActivity extends ActionBarActivity {
 
     private static final String PHOTOS_KEY = "photos";
     private static final String SEARCH_TERM_KEY = "search_term";
+    private static final String MAX_PAGE_KEY = "max_page_key";
 
     @InjectView(R.id.gridView) DynamicGridView gridView;
     @InjectView(R.id.search_text) EditText editText;
@@ -50,6 +53,9 @@ public class GridViewActivity extends ActionBarActivity {
 
     private String searchTerm = "";
     private int currentcolumnCount = 3;
+    private int maxPage = 1;
+    private int lastTotalCount = 0;
+
     private void setGridViewColumns() {
         Display display = ((WindowManager) this.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
         int rotation = display.getRotation();
@@ -69,7 +75,13 @@ public class GridViewActivity extends ActionBarActivity {
             Toast.makeText(GridViewActivity.this, R.string.enter_search_term_toast,Toast.LENGTH_SHORT)
                     .show();
         }
-        getMetaInfoFor(getSearchTermPhotosObservable());
+        this.maxPage = 1;
+        getMetaInfoFor(getSearchTermPhotosObservable(maxPage), new Action1<List<PhotoInfo>>() {
+            @Override
+            public void call(List<PhotoInfo> photoInfos) {
+                createAndSetAdapter(photoInfos);
+            }
+        });
     }
 
     private void setupGridView() {
@@ -108,6 +120,29 @@ public class GridViewActivity extends ActionBarActivity {
                 DynamicGridUtils.swap(photosWithUrls, from, to);
             }
         });
+        gridView.setOnScrollListener(new AbsListView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(AbsListView absListView, int i) {
+            }
+
+            @Override
+            public void onScroll(AbsListView absListView, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                if (totalItemCount == lastTotalCount) {
+                    return;
+                }
+                if (firstVisibleItem + visibleItemCount >= totalItemCount) {
+                    lastTotalCount = totalItemCount;
+                    maxPage += 1;
+                    Log.e("scrollMax", "about to get more photo infos " + maxPage);
+                    getMetaInfoFor(getSearchTermPhotosObservable(maxPage), new Action1<List<PhotoInfo>>() {
+                        @Override
+                        public void call(final List<PhotoInfo> photoInfos) {
+                            updateAdapter(photoInfos);
+                        }
+                    });
+                }
+            }
+        });
     }
 
     @Override
@@ -142,6 +177,7 @@ public class GridViewActivity extends ActionBarActivity {
             }
         });
         if (savedInstanceState != null) {
+            maxPage = savedInstanceState.getInt(MAX_PAGE_KEY);
             searchTerm = savedInstanceState.getString(SEARCH_TERM_KEY);
             photosWithUrls = (ArrayList<PhotoWithUrl>)savedInstanceState.getSerializable(PHOTOS_KEY);
         }
@@ -151,6 +187,7 @@ public class GridViewActivity extends ActionBarActivity {
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
+        outState.putInt(MAX_PAGE_KEY, maxPage);
         outState.putString(SEARCH_TERM_KEY, searchTerm);
         outState.putSerializable(PHOTOS_KEY, photosWithUrls);
     }
@@ -167,9 +204,18 @@ public class GridViewActivity extends ActionBarActivity {
         if (photosWithUrls.size() > 0) {
             this.gridView.setAdapter(new ImageAdapter(this, flickrService, photosWithUrls, currentcolumnCount));
         }
-        else {
-            getMetaInfoFor(getIntestingPhotosObservable());
+    }
+
+    private void updateAdapter(List<PhotoInfo> photos) {
+        ImageAdapter adapter = ((ImageAdapter)gridView.getAdapter());
+        int startIndex = photosWithUrls.size();
+        for (PhotoInfo photoInfo : photos) {
+            PhotoWithUrl pUrl = PhotoWithUrl.from(photoInfo);
+            photosWithUrls.add(pUrl);
+            adapter.add(startIndex++, pUrl);
         }
+        adapter.notifyDataSetChanged();
+        gridView.invalidateViews();
     }
 
     private void createAndSetAdapter(List<PhotoInfo> photo) {
@@ -180,14 +226,15 @@ public class GridViewActivity extends ActionBarActivity {
         this.gridView.setAdapter(new ImageAdapter(this, flickrService, photosWithUrls, currentcolumnCount));
     }
 
-    private void getMetaInfoFor(Observable<PhotoInfoResponse> observable) {
+    private void getMetaInfoFor(Observable<PhotoInfoResponse> observable, final Action1<List<PhotoInfo>> action) {
         metaInfoSubscription =
                 observable
+                        .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1<PhotoInfoResponse>() {
                     @Override
                     public void call(PhotoInfoResponse response) {
-                        createAndSetAdapter(response.photos.photo);
+                        action.call(response.photos.photo);
                     }
                 }, new Action1<Throwable>() {
                     @Override
@@ -202,13 +249,13 @@ public class GridViewActivity extends ActionBarActivity {
                 });
     }
 
-    private Observable<PhotoInfoResponse> getIntestingPhotosObservable() {
-        Map<String, String> queryMap = FlickrSettings.getInterestingPhotosQueryMap();
+    private Observable<PhotoInfoResponse> getIntestingPhotosObservable(int pageNumber) {
+        Map<String, String> queryMap = FlickrSettings.getInterestingPhotosQueryMap(pageNumber);
         return flickrService.getInterestingPhotos(queryMap);
     }
 
-    private Observable<PhotoInfoResponse> getSearchTermPhotosObservable() {
-        Map<String, String> queryMap = FlickrSettings.getPhotosForSearchTerm(this.searchTerm);
+    private Observable<PhotoInfoResponse> getSearchTermPhotosObservable(int pageNumber) {
+        Map<String, String> queryMap = FlickrSettings.getPhotosForSearchTerm(this.searchTerm, pageNumber);
         return flickrService.getSearchTermPhotos(queryMap);
     }
 }

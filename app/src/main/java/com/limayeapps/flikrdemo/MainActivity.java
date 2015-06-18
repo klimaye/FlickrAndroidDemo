@@ -56,7 +56,7 @@ public class MainActivity extends Activity {
 
         flickrService = restAdapter.create(FlickrService.class);
 
-        Map<String, String> queryMap = FlickrSettings.getInterestingPhotosQueryMap();
+        Map<String, String> queryMap = FlickrSettings.getInterestingPhotosQueryMap(1);
 
         metaInfoSubscription = flickrService.getInterestingPhotos(queryMap)
                 .observeOn(AndroidSchedulers.mainThread())
