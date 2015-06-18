@@ -57,6 +57,7 @@ public class ImageAdapter extends BaseDynamicGridAdapter {
         }
         void build(final PhotoWithUrl info, FlickrService service) {
             if (info.url == null) {
+                Log.i("photoViewholder","fetch url");
                 service.getPhoto(FlickrSettings.getPhotoWithId(info.id))
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribe(new Action1<PhotoResponse>() {
@@ -83,7 +84,6 @@ public class ImageAdapter extends BaseDynamicGridAdapter {
                         });
             }
             else {
-                Log.i("photoViewholder",info.url);
                 Picasso.with(context).load(info.url).into(imageView);
             }
         }
